@@ -2,7 +2,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
 class Role(models.TextChoices):
     STUDENT = "STUDENT", "Student"
     INSTRUCTOR = "INSTRUCTOR", "Instructor"

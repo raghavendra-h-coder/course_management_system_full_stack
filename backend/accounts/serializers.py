@@ -1,5 +1,7 @@
+from django.contrib.auth import authenticate
 from django.db import transaction
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User, Role
 from profiles.models import StudentProfile, InstructorProfile
@@ -111,3 +113,55 @@ class RegisterSerializer(serializers.Serializer):
             )
 
         return user
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = authenticate(
+            username=attrs["username"],
+            password=attrs["password"]
+        )
+
+        if user is None:
+            raise serializers.ValidationError(
+                "Invalid username or password."
+            )
+
+        attrs["user"] = user
+        return attrs
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(
+        write_only=True,
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+    )
+    confirm_password = serializers.CharField(
+        write_only=True,
+    )
+
+    def validate(self, attrs):
+        old_password = attrs["old_password"]
+        new_password = attrs["new_password"]
+        confirm_password = attrs["confirm_password"]
+
+        if old_password == new_password:
+            raise serializers.ValidationError(
+                "Old password is same as new password."
+            )
+        if new_password != confirm_password:
+            raise serializers.ValidationError(
+                "New password is not same as confirm password."
+            )
+
+        return attrs
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+    def save(self):
+        token = RefreshToken(self.validated_data["refresh"])
+        token.blacklist()
